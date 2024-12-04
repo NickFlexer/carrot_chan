@@ -1,4 +1,5 @@
 import pathlib
+import urllib3
 import configparser
 from flask import Flask, request
 import telepot
@@ -10,15 +11,23 @@ config.read(config_path)
 
 secret = config["TOKEN"]["secret"]
 url = config["URL"]["base"]
-bot = telepot.Bot(config["TOKEN"]["bot"])
 
 app = Flask(__name__)
 
+proxy_url = "http://proxy.server:3128"
+telepot.api._pools = {
+    'default': urllib3.ProxyManager(proxy_url=proxy_url, num_pools=3, maxsize=10, retries=False, timeout=30),
+}
+telepot.api._onetime_pool_spec = (urllib3.ProxyManager, dict(proxy_url=proxy_url, num_pools=1, maxsize=1, retries=False, timeout=30))
+
+bot = telepot.Bot(config["TOKEN"]["bot"])
 webhook = OrderedWebhook(bot)
+
 
 @app.route("/health-check")
 def index():
     return "OK!"
+
 
 @app.route("/{}".format(secret), methods=["GET", "POST"])
 def webhook_handler():
@@ -27,18 +36,21 @@ def webhook_handler():
         chat_id = update["message"]["chat"]["id"]
         if "text" in update["message"]:
             text = update["message"]["text"]
-            bot.sendMessage(chat_id, "From the web: you said '{}'".format(text))
+            bot.sendMessage(chat_id, "{}".format(text))
         else:
-            bot.sendMessage(chat_id, "From the web: sorry, I didn't understand that kind of message")
+            bot.sendMessage(chat_id, "Я такое не понимаю")
     return "OK"
 
 
-if __name__ == "__main__":
+@app.route("/set_webhook", methods=["GET"])
+def set_webhook():
     try:
         bot.setWebhook(url + "/{}".format(secret))
-        # Sometimes it would raise this error, but webhook still set successfully.
+        return "OK"
     except telepot.exception.TooManyRequestsError:
-        pass
+        return "FALSE"
 
+
+if __name__ == "__main__":
     webhook.run_as_thread()
     app.run()
