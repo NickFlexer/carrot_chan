@@ -2,6 +2,7 @@ import pathlib
 import configparser
 from flask import Flask, request
 import telepot
+from telepot.loop import OrderedWebhook
 
 config_path = pathlib.Path(__file__).parent.absolute() / "settings.ini"
 config = configparser.ConfigParser()
@@ -13,12 +14,13 @@ bot = telepot.Bot(config["TOKEN"]["bot"])
 
 app = Flask(__name__)
 
+webhook = OrderedWebhook(bot)
 
 @app.route("/health-check")
 def index():
     return "OK!"
 
-@app.route("/{}".format(secret), methods=["POST"])
+@app.route("/{}".format(secret), methods=["GET", "POST"])
 def webhook_handler():
     update = request.get_json()
     if "message" in update:
@@ -38,4 +40,5 @@ if __name__ == "__main__":
     except telepot.exception.TooManyRequestsError:
         pass
 
+    webhook.run_as_thread()
     app.run()
