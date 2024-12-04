@@ -1,10 +1,11 @@
+import pathlib
 import configparser
 from flask import Flask, request
 import telepot
 
-
+config_path = pathlib.Path(__file__).parent.absolute() / "settings.ini"
 config = configparser.ConfigParser()
-config.read("settings.ini")
+config.read(config_path)
 
 secret = config["TOKEN"]["secret"]
 url = config["URL"]["base"]
