@@ -5,12 +5,16 @@ from flask import Flask, request
 import telepot
 from telepot.loop import OrderedWebhook
 
+from bot.brain import Brain
+
 config_path = pathlib.Path(__file__).parent.absolute() / "settings.ini"
 config = configparser.ConfigParser()
 config.read(config_path)
 
 secret = config["TOKEN"]["secret"]
 url = config["URL"]["base"]
+
+brain = Brain(config)
 
 app = Flask(__name__)
 
@@ -36,9 +40,10 @@ def webhook_handler():
         chat_id = update["message"]["chat"]["id"]
         if "text" in update["message"]:
             text = update["message"]["text"]
-            bot.sendMessage(chat_id, "{}".format(text))
-        else:
-            bot.sendMessage(chat_id, "Я такое не понимаю")
+
+            answer = brain.handle_answer(text)
+
+            bot.sendMessage(chat_id, "{}".format(answer))
     return "OK"
 
 
