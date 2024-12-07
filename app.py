@@ -40,10 +40,9 @@ def webhook_handler():
         chat_id = update["message"]["chat"]["id"]
         if "text" in update["message"]:
             text = update["message"]["text"]
-
-            answer = brain.handle_answer(text)
-
-            bot.sendMessage(chat_id, "{}".format(answer))
+            bot.sendMessage(chat_id, "{}".format(text))
+        else:
+            bot.sendMessage(chat_id, "Я такое не понимаю")
     return "OK"
 
 
